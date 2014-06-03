@@ -18,8 +18,8 @@ int panelMonPin = A15;    // input pin for the voltage divider
 int panelVal = 0;       // variable for the A/D value
 float pinPanelVoltage = 0; // variable to hold the calculated voltage
 float panelVoltage = 12;
-float ratio = 2.6;  // Change this to match the MEASURED ration of the circuit, 12.2k R1 and 4.7k R2
-
+float ratio = 2.75;  // Change this to match the MEASURED ration of the circuit, 12.2k R1 and 4.7k R2
+float panelAmps;
 
 const int Radar_A_PinEN = 9;
 const int Radar_A_PinOUT = 13;
@@ -77,18 +77,18 @@ delay(500);
 }
 void readVoltages()
 {
- //  batVal = analogRead(batMonPin);    // read the voltage on the divider 
-//   Serial.print("bat sensor read: ");
-//  Serial.println(batVal);  
+   batVal = analogRead(batMonPin);    // read the voltage on the divider 
+   Serial.print("bat sensor read: ");
+  Serial.println(batVal);  
     // read the analog in value:
 
   
-//  pinBatVoltage = batVal * 0.00488;       //  Calculate the voltage on the A/D pin
+  pinBatVoltage = batVal * 0.00635;       //  Calculate the voltage on the A/D pin
                                     //  A reading of 1 for the A/D = 0.0048mV
                                     //  if we multiply the A/D reading by 0.00488 then 
                                     //  we get the voltage on the pin.  
 
-  batteryVoltage = readVcc();// pinBatVoltage * ratio;    //  Use the ratio calculated for the voltage divider
+  batteryVoltage =  pinBatVoltage * ratio;    //  Use the ratio calculated for the voltage divider// readVcc();// 
                                           //  to calculate the battery voltage
   Serial.print("battery voltage: ");
   Serial.println(batteryVoltage); 
@@ -97,17 +97,17 @@ void readVoltages()
    Serial.print("panel sensor read: ");
   Serial.println(panelVal);  
     // read the analog in value:
-
+ panelAmps = (((long)panelVal * 5000 / 1024) - 500 ) * 1000 / 133; 
   
-  pinPanelVoltage = panelVal * 0.00488;       //  Calculate the voltage on the A/D pin
+ // pinPanelVoltage = panelVal * 0.00488;       //  Calculate the voltage on the A/D pin
                                     //  A reading of 1 for the A/D = 0.0048mV
                                     //  if we multiply the A/D reading by 0.00488 then 
                                     //  we get the voltage on the pin.  
 
-  panelVoltage = pinPanelVoltage * ratio;    //  Use the ratio calculated for the voltage divider
+ // panelVoltage = pinPanelVoltage * ratio;    //  Use the ratio calculated for the voltage divider
                                           //  to calculate the battery voltage
-  Serial.print("panel voltage: ");
-  Serial.println(panelVoltage);      
+  Serial.print("panel amps: ");
+  Serial.println(panelAmps);      
  
  if(awake){
     if(panelVoltage < 8 || batteryVoltage < 11){
@@ -160,7 +160,7 @@ long readVcc() {
   long result = (high<<8) | low;
  
   result = 1125300L / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-  result = result * .001; //convert millvolts to volts
+ // result = result * .001; //convert millvolts to volts
   return result; // Vcc in millivolts
 }
 void enable()
