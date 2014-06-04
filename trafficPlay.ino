@@ -9,50 +9,84 @@ this is now just getting speed from one radar
 bool awake = false;
 
 //first thing is to get the solar panel voltage
-int batMonPin = A8;    // input pin for the voltage divider
+int batMonPin = A0;    // input pin for the voltage divider
 int batVal = 0;       // variable for the A/D value
 float pinBatVoltage = 0; // variable to hold the calculated voltage
 float batteryVoltage = 12;
+const float ratio = 2.65;
+const int batHighThreshold = 11.7;
+const int batLowThreshold = 11.5;
 
-int panelMonPin = A15;    // input pin for the voltage divider
-int panelVal = 0;       // variable for the A/D value
-float pinPanelVoltage = 0; // variable to hold the calculated voltage
-float panelVoltage = 12;
-float ratio = 2.75;  // Change this to match the MEASURED ration of the circuit, 12.2k R1 and 4.7k R2
-float panelAmps;
 
-const int Radar_A_PinEN = 9;
-const int Radar_A_PinOUT = 13;
+const int Radar_A_PinEN = 2;
+const int Radar_A_PinOUT = A1;
+const int Radar_B_PinEN = 4;
+const int Radar_B_PinOUT = A2;
+const int Radar_C_PinEN = 6;
+const int Radar_C_PinOUT = A3;
+const int Radar_D_PinEN = 6;
+const int Radar_D_PinOUT = A4;
+
 int enabled = 0;  //sensor detection flag
+int b_enabled = 0; 
+int c_enabled = 0; 
+int d_enabled = 0; 
+
 int current_state = 0;
+int b_current_state = 0;
+int c_current_state = 0;
+int d_current_state = 0;
+
 int state = 0;    //momentary state value
+int b_state = 0; 
+int c_state = 0; 
+int d_state = 0; 
+
 int a_count = 0;    //state change count
+int b_count = 0; 
+int c_count = 0; 
+int d_count = 0; 
+
 long currentMilli = 0;
+long b_currentMilli = 0;
+long c_currentMilli = 0;
+long d_currentMilli = 0;
 
 int a_speed=0;
+int b_speed=0;
+int c_speed=0;
+int d_speed=0;
 
-#define INVERTERSWITCH 31  
+//#define INVERTERSWITCH 31  
+
+// Define the number of samples to keep track of.  The higher the number,
+// the more the readings will be smoothed, but the slower the output will
+// respond to the input.  Using a constant rather than a normal variable lets
+// use this value to determine the size of the readings array.
+const int numReadings = 25;
+
+int readings[numReadings];      // the readings from the analog input
+int index = 0;                  // the index of the current reading
+int total = 0;                  // the running total
+int average = 0;                // the average
 
 void setup()
 {
   Serial.begin(9600);
   pinMode(batMonPin, INPUT);
-  pinMode(panelMonPin, INPUT);
-  pinMode(INVERTERSWITCH, OUTPUT);  
-  
-  digitalWrite(INVERTERSWITCH, LOW);
+
  // enable();
   currentMilli = millis();
   
   // initialize all the readings to 0: 
- /* for (int thisReading = 0; thisReading < numReadings; thisReading++)
-    readings[thisReading] = 0; */
+  for (int thisReading = 0; thisReading < numReadings; thisReading++)
+    readings[thisReading] = 0; 
 
 }
 
 void loop()
 {
-  //let's get the solar and battery voltage to see if we should sleep or wake
+  //let's get the  battery voltage to see if we should sleep or wake
   readVoltages();
   if (!awake){
     delay(1000 );
@@ -61,27 +95,40 @@ void loop()
     
   //now we wait to turn on the green light until something moves
   
+  getMotion();
   
-  if(digitalRead(Radar_A_PinOUT) != current_state)
-  {
-    a_count++;
-    delay(1);
-    current_state = -(current_state - 1);  //changes current_state from 0 to 1, and vice-versa
-  }
-
-  if(millis()-currentMilli > 500)          //prints the "speed" every half a second
-  {
-    print_speed();
-  }
-delay(500);
 }
 void readVoltages()
 {
    batVal = analogRead(batMonPin);    // read the voltage on the divider 
+     //average the amp sensor
+  // subtract the last reading:
+  total= total - readings[index];         
+  // read from the sensor:  
+  readings[index] = batVal; 
+  // add the reading to the total:
+  total= total + readings[index];       
+  // advance to the next position in the array:  
+  index = index + 1;                    
+
+  // if we're at the end of the array...
+  if (index >= numReadings)              
+    // ...wrap around to the beginning: 
+    index = 0;                           
+
+  // calculate the average:
+  average = total / numReadings;         
+  
+ 
+  
    Serial.print("bat sensor read: ");
   Serial.println(batVal);  
     // read the analog in value:
-
+//assign sensort value to average, then calc stuff
+  batVal = average;
+  
+   Serial.print("bat sensor average: ");
+  Serial.println(batVal);  
   
   pinBatVoltage = batVal * 0.00635;       //  Calculate the voltage on the A/D pin
                                     //  A reading of 1 for the A/D = 0.0048mV
@@ -90,32 +137,18 @@ void readVoltages()
 
   batteryVoltage =  pinBatVoltage * ratio;    //  Use the ratio calculated for the voltage divider// readVcc();// 
                                           //  to calculate the battery voltage
-  Serial.print("battery voltage: ");
+  Serial.print("avg battery voltage: ");
   Serial.println(batteryVoltage); 
 
-  panelVal = analogRead(panelMonPin);    // read the voltage on the divider 
-   Serial.print("panel sensor read: ");
-  Serial.println(panelVal);  
-    // read the analog in value:
- panelAmps = (((long)panelVal * 5000 / 1024) - 500 ) * 1000 / 133; 
-  
- // pinPanelVoltage = panelVal * 0.00488;       //  Calculate the voltage on the A/D pin
-                                    //  A reading of 1 for the A/D = 0.0048mV
-                                    //  if we multiply the A/D reading by 0.00488 then 
-                                    //  we get the voltage on the pin.  
-
- // panelVoltage = pinPanelVoltage * ratio;    //  Use the ratio calculated for the voltage divider
-                                          //  to calculate the battery voltage
-  Serial.print("panel amps: ");
-  Serial.println(panelAmps);      
+ 
  
  if(awake){
-    if(panelVoltage < 8 || batteryVoltage < 11){
+    if( batteryVoltage < batLowThreshold && awake) {
     
     goSleep();
     }
  }else{
-  if(panelVoltage > 11 && batteryVoltage > 12){
+  if( batteryVoltage > batHighThreshold && !awake){
     wakeUp();
   }
  } 
@@ -124,7 +157,7 @@ void readVoltages()
 void wakeUp()
 {
  
- digitalWrite(INVERTERSWITCH, HIGH); 
+ //digitalWrite(INVERTERSWITCH, HIGH); 
  awake = true;
  Serial.println("waking up"); 
  enable();
@@ -132,7 +165,7 @@ void wakeUp()
 void goSleep()
 {
  
- digitalWrite(INVERTERSWITCH, LOW); 
+// digitalWrite(INVERTERSWITCH, LOW); 
  awake = false;
  Serial.println("going to sleep"); 
  disable();
@@ -174,6 +207,27 @@ void enable()
   digitalWrite(Radar_A_PinEN,LOW);
   delayMicroseconds(5);
   digitalWrite(Radar_A_PinEN, HIGH);
+ 
+  
+   pinMode(Radar_B_PinOUT, INPUT);
+  pinMode(Radar_B_PinEN, OUTPUT);
+  digitalWrite(Radar_B_PinEN,LOW);
+  delayMicroseconds(5);
+  digitalWrite(Radar_B_PinEN, HIGH);
+  
+  
+   pinMode(Radar_C_PinOUT, INPUT);
+  pinMode(Radar_C_PinEN, OUTPUT);
+  digitalWrite(Radar_C_PinEN,LOW);
+  delayMicroseconds(5);
+  digitalWrite(Radar_C_PinEN, HIGH);
+  
+  
+   pinMode(Radar_D_PinOUT, INPUT);
+  pinMode(Radar_D_PinEN, OUTPUT);
+  digitalWrite(Radar_D_PinEN,LOW);
+  delayMicroseconds(5);
+  digitalWrite(Radar_D_PinEN, HIGH);
   wait();
 }
 
@@ -181,24 +235,106 @@ void disable()                        //function not used in this program
 {
   pinMode(Radar_A_PinEN, OUTPUT);
   digitalWrite(Radar_A_PinEN, LOW);
+  
+    pinMode(Radar_B_PinEN, OUTPUT);
+  digitalWrite(Radar_B_PinEN, LOW);
+  
+    pinMode(Radar_C_PinEN, OUTPUT);
+  digitalWrite(Radar_C_PinEN, LOW);
+  
+    pinMode(Radar_D_PinEN, OUTPUT);
+  digitalWrite(Radar_D_PinEN, LOW);
 }
+
 
 void wait()                            //waits for the sensor to return a state = 1
 {
-  while(digitalRead(Radar_A_PinOUT) != 1)
+  while(digitalRead(Radar_A_PinEN) != 1)
   {
-    digitalRead(Radar_A_PinOUT);
+    digitalRead(Radar_A_PinEN);
+   
   }
   current_state = 1;
-  Serial.println("Sensor enabled!");
+  Serial.println(" Sensor A enabled!");
+  
+   while(digitalRead(Radar_B_PinEN) != 1)
+  {
+    digitalRead(Radar_A_PinEN);
+   
+  }
+  b_current_state = 1;
+  Serial.println(" Sensor B enabled!");
+  
+   while(digitalRead(Radar_C_PinEN) != 1)
+  {
+    digitalRead(Radar_C_PinEN);
+   
+  }
+  c_current_state = 1;
+  Serial.println(" Sensor C enabled!");
+  
+   while(digitalRead(Radar_D_PinEN) != 1)
+  {
+    digitalRead(Radar_D_PinEN);
+   
+  }
+  d_current_state = 1;
+  Serial.println(" Sensor D enabled!");
+}
+void getMotion(){
+  
+    if(digitalRead(Radar_A_PinOUT) != current_state)
+    {
+      a_count++;
+      delay(1);
+      current_state = -(current_state - 1);  //changes current_state from 0 to 1, and vice-versa
+    }
+    if(millis()-currentMilli > 500)          //prints the "speed" every half a second
+    {
+    print_speed(a_speed, a_count);
+    }
+     if(digitalRead(Radar_B_PinOUT) != b_current_state)
+    {
+      b_count++;
+      delay(1);
+      b_current_state = -(b_current_state - 1);  //changes current_state from 0 to 1, and vice-versa
+    }
+    if(millis()-currentMilli > 500)          //prints the "speed" every half a second
+    {
+    print_speed(b_speed, b_count);
+    }
+     if(digitalRead(Radar_C_PinOUT) != c_current_state)
+    {
+      c_count++;
+      delay(1);
+      c_current_state = -(c_current_state - 1);  //changes current_state from 0 to 1, and vice-versa
+    }
+    if(millis()-currentMilli > 500)          //prints the "speed" every half a second
+    {
+    print_speed(c_speed, c_count);
+    }
+   if(digitalRead(Radar_D_PinOUT) != d_current_state)
+    {
+      d_count++;
+      delay(1);
+      d_current_state = -(d_current_state - 1);  //changes current_state from 0 to 1, and vice-versa
+    }
+    if(millis()-currentMilli > 500)          //prints the "speed" every half a second
+    {
+      print_speed(d_speed, d_count);
+    }
+  delay(500);
 }
 
-void print_speed()
+
+void print_speed(int sPeed, int count)
 {
-  a_speed = a_count*2;
- /* Serial.print("Speed: ");
-  Serial.print(a_speed*2);
-  Serial.println(" Changes/s");*/
+  sPeed = count*2;
+  Serial.print("Speed: ");
+  Serial.print(sPeed*2);
+  Serial.println(" Changes/s");
   currentMilli = millis();
-  a_count = 0;
+   count = 0;
 }
+
+
