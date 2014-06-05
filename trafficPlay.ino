@@ -16,6 +16,7 @@ float batteryVoltage = 12;
 const float ratio = 2.65;
 const int batHighThreshold = 11.7;
 const int batLowThreshold = 11.5;
+const int fanThreshold = 12.25;
 
 
 const int Radar_A_PinEN = 2;
@@ -67,7 +68,20 @@ const int redPin = 8;
 const int hornA = 9;
 bool moveA = false;
 
+const int hornB = 10;
+bool moveB = false;
+
+const int hornC = 11;
+bool moveC = false;
+
+const int hornD = 12;
+bool moveD = false;
+
 bool playGame = false;
+
+const int fanPin= 13;
+
+int cycleCount = 0;
 
 //#define INVERTERSWITCH 31  
 
@@ -114,34 +128,73 @@ void loop()
   }
     
   //now we wait to turn on the green light until something moves
-  
+  if (cycleCount > 20)playGame = false;
   getMotion();
   
   if(playGame){
     //green
     digitalWrite(redPin, HIGH);
     digitalWrite(greenPin, LOW);
-    delay(10000);
+     for (int i = 0; i < random(300,1200); i ++){
+        bool moving = false; 
+        getMotion();
+        if( moveA || moveB || moveC || moveD){
+          delay(10);
+          cycleCount = 0;
+        }else{
+          delay(10);
+          cycleCount++;
+        }
+      }
+      
     
     //yellow
      digitalWrite(greenPin, HIGH);
     digitalWrite(yellowPin, LOW);
-    delay(10000);
+    delay(random(500,3000));
     
     //red
     digitalWrite(redPin, LOW);
     digitalWrite(yellowPin, HIGH);
-     getMotion();
+    for (int i = 0; i < random(300,1200); i ++){
+      bool moving = false; 
+      getMotion();
      if (moveA){
        digitalWrite(hornA, HIGH);
-       delay(250);
-       digitalWrite(hornA, LOW);
-       moveA = false;
+      }
+       if (moveB){
+       digitalWrite(hornB, HIGH);
+      
+      }
+       if (moveC){
+       digitalWrite(hornC, HIGH);
+       
+      }
+       if (moveD){
+       digitalWrite(hornD, HIGH);
+       
+      }
+     
+      if( moveA || moveB || moveC || moveD){
+        delay(250);
+      }else{
+        delay(10);
+      }//end if else
+      moveA = false;
+      moveB = false;
+      moveC = false;
+      moveD = false;
+     digitalWrite(hornA, LOW);
+     digitalWrite(hornB, LOW);
+     digitalWrite(hornC, LOW);
+     digitalWrite(hornD, LOW);
      }
-    delay(10000);
-  }
+    
+  }//end play game
   
-}
+}//end loop
+
+
 void readVoltages()
 {
    batVal = analogRead(batMonPin);    // read the voltage on the divider 
@@ -184,8 +237,12 @@ void readVoltages()
   Serial.print("avg battery voltage: ");
   Serial.println(batteryVoltage); 
 
- 
- 
+ if (batteryVoltage > fanThreshold){
+   digitalWrite(fanPin,HIGH);
+ }else{
+   digitalWrite(fanPin,LOW);
+   
+ }
  if(awake){
     if( batteryVoltage < batLowThreshold && awake) {
     
@@ -360,7 +417,10 @@ void getMotion(){
        Serial.print("B Speed: ");
       Serial.print(b_count*2);
       Serial.println(" Changes/s");
-      if(b_count > 0)playGame = true;
+      if(b_count > 0){
+        playGame = true;
+        moveB = true;
+      }
       b_currentMilli = millis();
       b_count = 0;
     }
@@ -377,7 +437,10 @@ void getMotion(){
        Serial.print("C Speed: ");
       Serial.print(c_count*2);
       Serial.println(" Changes/s");
-      if(c_count > 0)playGame = true;
+      if(c_count > 0){
+        playGame = true;
+        moveC = true;
+      }
       c_currentMilli = millis();
       c_count = 0;
     }
@@ -394,7 +457,10 @@ void getMotion(){
        Serial.print("D Speed: ");
       Serial.print(d_count*2);
       Serial.println(" Changes/s");
-      if(d_count > 0)playGame = true;
+      if(d_count > 0){
+        playGame = true;
+        moveD = true;
+      }
       d_currentMilli = millis();
       d_count = 0;
     }
