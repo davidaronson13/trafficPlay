@@ -20,12 +20,14 @@ const int batLowThreshold = 11.5;
 
 const int Radar_A_PinEN = 2;
 const int Radar_A_PinOUT = A1;
-const int Radar_B_PinEN = 4;
+const int Radar_B_PinEN = 3;
 const int Radar_B_PinOUT = A2;
-const int Radar_C_PinEN = 6;
+const int Radar_C_PinEN = 4;
 const int Radar_C_PinOUT = A3;
-const int Radar_D_PinEN = 6;
+const int Radar_D_PinEN = 5;
 const int Radar_D_PinOUT = A4;
+
+const int radarReadDuration = 1000;
 
 int enabled = 0;  //sensor detection flag
 int b_enabled = 0; 
@@ -57,6 +59,16 @@ int b_speed=0;
 int c_speed=0;
 int d_speed=0;
 
+
+const int greenPin = 6;
+const int yellowPin = 7;
+const int redPin = 8;
+
+const int hornA = 9;
+bool moveA = false;
+
+bool playGame = false;
+
 //#define INVERTERSWITCH 31  
 
 // Define the number of samples to keep track of.  The higher the number,
@@ -74,6 +86,14 @@ void setup()
 {
   Serial.begin(9600);
   pinMode(batMonPin, INPUT);
+  
+  pinMode(greenPin, OUTPUT);
+  pinMode(yellowPin, OUTPUT);
+  pinMode(redPin, OUTPUT);
+  pinMode(hornA, OUTPUT);
+  digitalWrite(greenPin, HIGH);
+   digitalWrite(yellowPin, HIGH);
+    digitalWrite(redPin, HIGH);
 
  // enable();
   currentMilli = millis();
@@ -96,6 +116,30 @@ void loop()
   //now we wait to turn on the green light until something moves
   
   getMotion();
+  
+  if(playGame){
+    //green
+    digitalWrite(redPin, HIGH);
+    digitalWrite(greenPin, LOW);
+    delay(10000);
+    
+    //yellow
+     digitalWrite(greenPin, HIGH);
+    digitalWrite(yellowPin, LOW);
+    delay(10000);
+    
+    //red
+    digitalWrite(redPin, LOW);
+    digitalWrite(yellowPin, HIGH);
+     getMotion();
+     if (moveA){
+       digitalWrite(hornA, HIGH);
+       delay(250);
+       digitalWrite(hornA, LOW);
+       moveA = false;
+     }
+    delay(10000);
+  }
   
 }
 void readVoltages()
@@ -289,9 +333,19 @@ void getMotion(){
       delay(1);
       current_state = -(current_state - 1);  //changes current_state from 0 to 1, and vice-versa
     }
-    if(millis()-currentMilli > 500)          //prints the "speed" every half a second
+    if(millis()-currentMilli > radarReadDuration)          //prints the "speed" every half a second
     {
-    print_speed(a_speed, a_count);
+      //Serial.print("A: ");
+      //print_speed(a_speed, a_count);
+      Serial.print("A Speed: ");
+      Serial.print(a_count*2);
+      Serial.println(" Changes/s");
+      if(a_count > 0){
+        playGame = true;
+        moveA = true;
+      }
+      currentMilli = millis();
+      a_count = 0;
     }
      if(digitalRead(Radar_B_PinOUT) != b_current_state)
     {
@@ -299,9 +353,16 @@ void getMotion(){
       delay(1);
       b_current_state = -(b_current_state - 1);  //changes current_state from 0 to 1, and vice-versa
     }
-    if(millis()-currentMilli > 500)          //prints the "speed" every half a second
+    if(millis()-b_currentMilli > radarReadDuration)          //prints the "speed" every half a second
     {
-    print_speed(b_speed, b_count);
+      //Serial.print("B: ");
+      //print_speed(b_speed, b_count);
+       Serial.print("B Speed: ");
+      Serial.print(b_count*2);
+      Serial.println(" Changes/s");
+      if(b_count > 0)playGame = true;
+      b_currentMilli = millis();
+      b_count = 0;
     }
      if(digitalRead(Radar_C_PinOUT) != c_current_state)
     {
@@ -309,9 +370,16 @@ void getMotion(){
       delay(1);
       c_current_state = -(c_current_state - 1);  //changes current_state from 0 to 1, and vice-versa
     }
-    if(millis()-currentMilli > 500)          //prints the "speed" every half a second
+    if(millis()-c_currentMilli > radarReadDuration)          //prints the "speed" every half a second
     {
-    print_speed(c_speed, c_count);
+      //Serial.print("C: ");
+      //print_speed(c_speed, c_count);
+       Serial.print("C Speed: ");
+      Serial.print(c_count*2);
+      Serial.println(" Changes/s");
+      if(c_count > 0)playGame = true;
+      c_currentMilli = millis();
+      c_count = 0;
     }
    if(digitalRead(Radar_D_PinOUT) != d_current_state)
     {
@@ -319,11 +387,18 @@ void getMotion(){
       delay(1);
       d_current_state = -(d_current_state - 1);  //changes current_state from 0 to 1, and vice-versa
     }
-    if(millis()-currentMilli > 500)          //prints the "speed" every half a second
+    if(millis()-d_currentMilli > radarReadDuration)          //prints the "speed" every half a second
     {
-      print_speed(d_speed, d_count);
+      //Serial.print("D: ");
+      //print_speed(d_speed, d_count);
+       Serial.print("D Speed: ");
+      Serial.print(d_count*2);
+      Serial.println(" Changes/s");
+      if(d_count > 0)playGame = true;
+      d_currentMilli = millis();
+      d_count = 0;
     }
-  delay(500);
+  delay(radarReadDuration);
 }
 
 
