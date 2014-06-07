@@ -14,7 +14,7 @@ int batVal = 0;       // variable for the A/D value
 float pinBatVoltage = 0; // variable to hold the calculated voltage
 float batteryVoltage = 12;
 const float ratio = 2.65;
-const int batHighThreshold = 11.7;
+const int batHighThreshold = 12 ;
 const int batLowThreshold = 11.5;
 const int fanThreshold = 12.25;
 
@@ -28,7 +28,7 @@ const int Radar_C_PinOUT = A3;
 const int Radar_D_PinEN = 5;
 const int Radar_D_PinOUT = A4;
 
-const int radarReadDuration = 1000;
+const int radarReadDuration = 10;
 
 int enabled = 0;  //sensor detection flag
 int b_enabled = 0; 
@@ -123,19 +123,28 @@ void loop()
   //let's get the  battery voltage to see if we should sleep or wake
   readVoltages();
   if (!awake){
-    delay(1000 );
+    delay(10 );
     return;
   }
     
   //now we wait to turn on the green light until something moves
-  if (cycleCount > 20)playGame = false;
+  if (cycleCount > 100){
+    playGame = false;
+    cycleCount = 0;
+  }
   getMotion();
   
   if(playGame){
     //green
     digitalWrite(redPin, HIGH);
     digitalWrite(greenPin, LOW);
-     for (int i = 0; i < random(300,1200); i ++){
+   // int ranNUm = random(2000,5000);
+  //  delay(ranNUm);
+    
+     int ranNUm = random(20,50);
+    delay(ranNUm);
+    
+     for (int i = 0; i < ranNUm; i ++){
         bool moving = false; 
         getMotion();
         if( moveA || moveB || moveC || moveD){
@@ -151,34 +160,41 @@ void loop()
     //yellow
      digitalWrite(greenPin, HIGH);
     digitalWrite(yellowPin, LOW);
-    delay(random(500,3000));
+    int ranNUm2 = random(500,3000);
+    delay(ranNUm2);
     
     //red
     digitalWrite(redPin, LOW);
     digitalWrite(yellowPin, HIGH);
-    for (int i = 0; i < random(300,1200); i ++){
+    int ranNUm3 = random(20,40);
+    for (int i = 0; i < 20; i ++){
       bool moving = false; 
       getMotion();
      if (moveA){
        digitalWrite(hornA, HIGH);
+       Serial.println("horn A"); 
       }
        if (moveB){
        digitalWrite(hornB, HIGH);
+        Serial.println("horn B"); 
       
-      }
+      } 
        if (moveC){
        digitalWrite(hornC, HIGH);
+        Serial.println("horn C"); 
        
       }
        if (moveD){
        digitalWrite(hornD, HIGH);
+        Serial.println("horn D"); 
        
       }
      
       if( moveA || moveB || moveC || moveD){
+        
         delay(250);
       }else{
-        delay(10);
+        delay(1);
       }//end if else
       moveA = false;
       moveB = false;
@@ -188,8 +204,10 @@ void loop()
      digitalWrite(hornB, LOW);
      digitalWrite(hornC, LOW);
      digitalWrite(hornD, LOW);
-     }
-    
+     digitalWrite(redPin, LOW);
+     }//end red
+    digitalWrite(redPin, HIGH);
+    digitalWrite(greenPin, LOW);
   }//end play game
   
 }//end loop
