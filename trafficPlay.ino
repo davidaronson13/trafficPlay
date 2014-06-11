@@ -384,6 +384,7 @@ void wait()                            //waits for the sensor to return a state 
 }
 void getMotion(){
   
+  for (int i =0;i<500;i++){
     if(digitalRead(Radar_A_PinOUT) != current_state)
     {
       a_count++;
@@ -464,7 +465,7 @@ void getMotion(){
       d_currentMilli = millis();
       d_count = 0;
     }
-  delay(radarReadDuration);
+  }//delay(radarReadDuration);
 }
 
 
