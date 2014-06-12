@@ -27,8 +27,10 @@ const int Radar_C_PinEN = 4;
 const int Radar_C_PinOUT = A3;
 const int Radar_D_PinEN = 5;
 const int Radar_D_PinOUT = A4;
+int radarOutArr[] = {Radar_A_PinOUT, Radar_B_PinOUT, Radar_C_PinOUT, Radar_D_PinEN};
 
-const int radarReadDuration = 10;
+int radarCount = 4;
+const int radarReadDuration = 500;
 
 int enabled = 0;  //sensor detection flag
 int b_enabled = 0; 
@@ -40,6 +42,8 @@ int b_current_state = 0;
 int c_current_state = 0;
 int d_current_state = 0;
 
+int radarState[] = {current_state, b_current_state, c_current_state, d_current_state};
+
 int state = 0;    //momentary state value
 int b_state = 0; 
 int c_state = 0; 
@@ -50,6 +54,8 @@ int b_count = 0;
 int c_count = 0; 
 int d_count = 0; 
 
+int radarPingCount[] = {a_count, b_count, c_count, d_count};
+
 long currentMilli = 0;
 long b_currentMilli = 0;
 long c_currentMilli = 0;
@@ -59,6 +65,8 @@ int a_speed=0;
 int b_speed=0;
 int c_speed=0;
 int d_speed=0;
+
+int radarSpeeds[] = {a_speed, b_speed, c_speed, d_speed};
 
 
 const int greenPin = 6;
@@ -77,6 +85,9 @@ bool moveC = false;
 const int hornD = 12;
 bool moveD = false;
 
+int moves[] = {moveA, moveB, moveC, moveD};
+int horns[] = {hornA, hornB, hornC, hornD};
+
 bool playGame = false;
 
 const int fanPin= 13;
@@ -89,7 +100,7 @@ int cycleCount = 0;
 // the more the readings will be smoothed, but the slower the output will
 // respond to the input.  Using a constant rather than a normal variable lets
 // use this value to determine the size of the readings array.
-const int numReadings = 25;
+const int numReadings = 15;
 
 int readings[numReadings];      // the readings from the analog input
 int index = 0;                  // the index of the current reading
@@ -104,11 +115,15 @@ void setup()
   pinMode(greenPin, OUTPUT);
   pinMode(yellowPin, OUTPUT);
   pinMode(redPin, OUTPUT);
-  pinMode(hornA, OUTPUT);
+  
   digitalWrite(greenPin, HIGH);
    digitalWrite(yellowPin, HIGH);
     digitalWrite(redPin, HIGH);
-
+for (int i = 0; i < radarCount; i ++){
+        pinMode(horns[i], OUTPUT);
+         digitalWrite(horns[i], HIGH);
+  }
+         
  // enable();
   currentMilli = millis();
   
@@ -128,37 +143,36 @@ void loop()
   }
     
   //now we wait to turn on the green light until something moves
-  if (cycleCount > 100){
+  if (cycleCount > 20){
     playGame = false;
     cycleCount = 0;
   }
   getMotion();
-  
+  bool moving = false; 
   if(playGame){
     //green
     digitalWrite(redPin, HIGH);
+    delay(10);
     digitalWrite(greenPin, LOW);
    // int ranNUm = random(2000,5000);
   //  delay(ranNUm);
     
-     int ranNUm = random(20,50);
+     int ranNUm = random(10,25);
     delay(ranNUm);
     
      for (int i = 0; i < ranNUm; i ++){
-        bool moving = false; 
+        
         getMotion();
         if( moveA || moveB || moveC || moveD){
-          delay(10);
-          cycleCount = 0;
-        }else{
-          delay(10);
-          cycleCount++;
+          moving = true; 
         }
       }
+     
       
     
     //yellow
      digitalWrite(greenPin, HIGH);
+     delay(10);
     digitalWrite(yellowPin, LOW);
     int ranNUm2 = random(500,3000);
     delay(ranNUm2);
@@ -166,48 +180,41 @@ void loop()
     //red
     digitalWrite(redPin, LOW);
     digitalWrite(yellowPin, HIGH);
-    int ranNUm3 = random(20,40);
-    for (int i = 0; i < 20; i ++){
+    int ranNUm3 = random(10,30);
+    for (int i = 0; i < ranNUm3; i ++){
       bool moving = false; 
       getMotion();
-     if (moveA){
-       digitalWrite(hornA, HIGH);
-       Serial.println("horn A"); 
-      }
-       if (moveB){
-       digitalWrite(hornB, HIGH);
-        Serial.println("horn B"); 
-      
-      } 
-       if (moveC){
-       digitalWrite(hornC, HIGH);
-        Serial.println("horn C"); 
-       
-      }
-       if (moveD){
-       digitalWrite(hornD, HIGH);
-        Serial.println("horn D"); 
-       
-      }
-     
-      if( moveA || moveB || moveC || moveD){
+      for (int i=0; i < radarCount; i++){
+        if (moves[i] == true){
+           digitalWrite(horns[i], LOW);
+           Serial.print("horn "); 
+           Serial.println(i); 
+           moving = true;
+        }
         
-        delay(250);
+      }
+      if(moving){
+        delay(300);
       }else{
-        delay(1);
+        delay(10);
       }//end if else
-      moveA = false;
-      moveB = false;
-      moveC = false;
-      moveD = false;
-     digitalWrite(hornA, LOW);
-     digitalWrite(hornB, LOW);
-     digitalWrite(hornC, LOW);
-     digitalWrite(hornD, LOW);
+      
+       for (int i = 0; i < radarCount; i ++){
+         moves[i] = false;
+         digitalWrite(horns[i], HIGH);
+         
+       }
+    
      digitalWrite(redPin, LOW);
      }//end red
+      if (moving){
+        cycleCount=0;
+      }else{
+        cycleCount++;
+      }
+     
     digitalWrite(redPin, HIGH);
-    digitalWrite(greenPin, LOW);
+  //  digitalWrite(greenPin, LOW);
   }//end play game
   
 }//end loop
@@ -400,8 +407,34 @@ void wait()                            //waits for the sensor to return a state 
   d_current_state = 1;
   Serial.println(" Sensor D enabled!");
 }
+
 void getMotion(){
+  currentMilli = millis();
+  while(millis()-currentMilli < radarReadDuration){
+    for (int i = 0; i < radarCount;i++){
+      if (digitalRead(radarOutArr[i]) != radarState[i]);
+      radarPingCount[i]++;
+      delay(1);
+      radarState[i] = -(radarState[i] -1);
+    }
+     for (int i = 0; i < radarCount;i++){
+       Serial.print(i+1); 
+       Serial.print(" Speed: ");
+      Serial.print(radarPingCount[i]*2);
+      if(radarPingCount[i] > 4){
+        playGame = true;
+        moves[i] = true;
+      }
+      radarPingCount[i] = 0;
+     }
+    
+    
+  }
   
+} 
+void getMotionold(){
+  currentMilli = millis();
+  while(millis()-currentMilli > radarReadDuration)
     if(digitalRead(Radar_A_PinOUT) != current_state)
     {
       a_count++;
