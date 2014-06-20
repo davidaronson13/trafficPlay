@@ -15,9 +15,10 @@ float pinBatVoltage = 0; // variable to hold the calculated voltage
 float batteryVoltage = 12;
 const float ratio = 2.65;
 const int batHighThreshold = 12 ;
-const int batLowThreshold = 11.5;
-const int fanThreshold = 12.25;
+const int batLowThreshold = 11.75;
+const int fanThreshold = 13;
 
+const int speedThresh = 260;
 
 const int Radar_A_PinEN = 2;
 const int Radar_A_PinOUT = A1;
@@ -138,6 +139,7 @@ void loop()
   //let's get the  battery voltage to see if we should sleep or wake
   readVoltages();
   if (!awake){
+    digitalWrite(greenPin, HIGH);  
     delay(10 );
     return;
   }
@@ -146,10 +148,13 @@ void loop()
   if (cycleCount > 20){
     playGame = false;
     cycleCount = 0;
+     digitalWrite(greenPin, HIGH);
   }
   getMotion();
+  playGame= true;
   bool moving = false; 
   if(playGame){
+    Serial.println("playing Game"); 
     //green
     digitalWrite(redPin, HIGH);
     delay(10);
@@ -178,8 +183,11 @@ void loop()
     delay(ranNUm2);
     
     //red
-    digitalWrite(redPin, LOW);
     digitalWrite(yellowPin, HIGH);
+    delay(10);
+    digitalWrite(redPin, LOW);
+     
+    
     int ranNUm3 = random(10,30);
     for (int i = 0; i < ranNUm3; i ++){
       bool moving = false; 
@@ -214,7 +222,8 @@ void loop()
       }
      
     digitalWrite(redPin, HIGH);
-  //  digitalWrite(greenPin, LOW);
+    delay(10);
+   digitalWrite(greenPin, LOW);
   }//end play game
   
 }//end loop
@@ -263,9 +272,9 @@ void readVoltages()
   Serial.println(batteryVoltage); 
 
  if (batteryVoltage > fanThreshold){
-   digitalWrite(fanPin,HIGH);
- }else{
    digitalWrite(fanPin,LOW);
+ }else{
+   digitalWrite(fanPin,HIGH);
    
  }
  if(awake){
@@ -417,20 +426,22 @@ void getMotion(){
       delay(1);
       radarState[i] = -(radarState[i] -1);
     }
+    }
      for (int i = 0; i < radarCount;i++){
        Serial.print(i+1); 
        Serial.print(" Speed: ");
-      Serial.print(radarPingCount[i]*2);
-      if(radarPingCount[i] > 4){
+      Serial.println(radarPingCount[i]*2);
+      if(radarPingCount[i]*2 > speedThresh){
         playGame = true;
+        Serial.println("play game is true");
         moves[i] = true;
       }
       radarPingCount[i] = 0;
      }
     
     
-  }
   
+  Serial.println("done with MOtion");
 } 
 void getMotionold(){
   currentMilli = millis();
