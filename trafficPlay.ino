@@ -213,10 +213,10 @@ void loop()
        for (int i = 0; i < radarCount; i ++){
          moves[i] = false;
          digitalWrite(horns[i], HIGH);
-         delay(100);
+         //delay(100);
        }
-    
-     digitalWrite(redPin, LOW);
+   // delay(50);
+    // digitalWrite(redPin, LOW);
      }//end red
       if (moving){
         cycleCount=0;
@@ -255,7 +255,7 @@ void readVoltages()
   
  
   
- //  Serial.print("bat sensor read: ");
+  // Serial.print("bat sensor read: ");
 //  Serial.println(batVal);  
     // read the analog in value:
 //assign sensort value to average, then calc stuff
@@ -271,8 +271,8 @@ void readVoltages()
 
   batteryVoltage =  pinBatVoltage * ratio;    //  Use the ratio calculated for the voltage divider// readVcc();// 
                                           //  to calculate the battery voltage
- // Serial.print("avg battery voltage: ");
-//  Serial.println(batteryVoltage); 
+  Serial.print("avg battery voltage: ");
+  Serial.println(batteryVoltage); 
 
  if (batteryVoltage > fanThreshold){
    digitalWrite(fanPin,LOW);
@@ -439,7 +439,7 @@ void getMotion(){
             Serial.println(radarSpeeds[i]*2);
             currentMilli = millis();
             radarPingCount[i] = 0;
-            if(radarSpeeds[i] > 30){
+            if(radarSpeeds[i] > 20){
               moves[i] = true;
               playGame= true;
               Serial.println(" some move is true");
