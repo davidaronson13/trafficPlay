@@ -1,4 +1,4 @@
-/*
+ /*
 Traffic Play version 0.1
 this is now just getting speed from one radar
 
@@ -28,7 +28,7 @@ const int Radar_C_PinEN = 4;
 const int Radar_C_PinOUT = A3;
 const int Radar_D_PinEN = 5;
 const int Radar_D_PinOUT = A4;
-int radarOutArr[] = {Radar_A_PinOUT, Radar_B_PinOUT, Radar_C_PinOUT, Radar_D_PinEN};
+int radarOutArr[] = {Radar_A_PinOUT, Radar_B_PinOUT, Radar_C_PinOUT, Radar_D_PinOUT};
 
 int radarCount = 4;
 const int radarReadDuration = 500;
@@ -111,6 +111,7 @@ int average = 0;                // the average
 void setup()
 {
   Serial.begin(9600);
+  Serial.println("seting up"); 
   pinMode(batMonPin, INPUT);
   
   pinMode(greenPin, OUTPUT);
@@ -151,7 +152,9 @@ void loop()
      digitalWrite(greenPin, HIGH);
   }
   getMotion();
-  playGame= true;
+  if( moveA || moveB || moveC || moveD){
+    Serial.println("true in loop");
+      playGame= true;}
   bool moving = false; 
   if(playGame){
     Serial.println("playing Game"); 
@@ -162,7 +165,7 @@ void loop()
    // int ranNUm = random(2000,5000);
   //  delay(ranNUm);
     
-     int ranNUm = random(10,25);
+     int ranNUm = random(3000,5000);
     delay(ranNUm);
     
      for (int i = 0; i < ranNUm; i ++){
@@ -188,7 +191,7 @@ void loop()
     digitalWrite(redPin, LOW);
      
     
-    int ranNUm3 = random(10,30);
+    int ranNUm3 = random(1000,3000);
     for (int i = 0; i < ranNUm3; i ++){
       bool moving = false; 
       getMotion();
@@ -202,7 +205,7 @@ void loop()
         
       }
       if(moving){
-        delay(300);
+        delay(200);
       }else{
         delay(10);
       }//end if else
@@ -210,7 +213,7 @@ void loop()
        for (int i = 0; i < radarCount; i ++){
          moves[i] = false;
          digitalWrite(horns[i], HIGH);
-         
+         delay(100);
        }
     
      digitalWrite(redPin, LOW);
@@ -252,14 +255,14 @@ void readVoltages()
   
  
   
-   Serial.print("bat sensor read: ");
-  Serial.println(batVal);  
+ //  Serial.print("bat sensor read: ");
+//  Serial.println(batVal);  
     // read the analog in value:
 //assign sensort value to average, then calc stuff
   batVal = average;
   
-   Serial.print("bat sensor average: ");
-  Serial.println(batVal);  
+ //  Serial.print("bat sensor average: ");
+ // Serial.println(batVal);  
   
   pinBatVoltage = batVal * 0.00635;       //  Calculate the voltage on the A/D pin
                                     //  A reading of 1 for the A/D = 0.0048mV
@@ -268,8 +271,8 @@ void readVoltages()
 
   batteryVoltage =  pinBatVoltage * ratio;    //  Use the ratio calculated for the voltage divider// readVcc();// 
                                           //  to calculate the battery voltage
-  Serial.print("avg battery voltage: ");
-  Serial.println(batteryVoltage); 
+ // Serial.print("avg battery voltage: ");
+//  Serial.println(batteryVoltage); 
 
  if (batteryVoltage > fanThreshold){
    digitalWrite(fanPin,LOW);
@@ -418,30 +421,37 @@ void wait()                            //waits for the sensor to return a state 
 }
 
 void getMotion(){
-  currentMilli = millis();
-  while(millis()-currentMilli < radarReadDuration){
-    for (int i = 0; i < radarCount;i++){
-      if (digitalRead(radarOutArr[i]) != radarState[i]);
-      radarPingCount[i]++;
-      delay(1);
-      radarState[i] = -(radarState[i] -1);
-    }
-    }
-     for (int i = 0; i < radarCount;i++){
-       Serial.print(i+1); 
-       Serial.print(" Speed: ");
-      Serial.println(radarPingCount[i]*2);
-      if(radarPingCount[i]*2 > speedThresh){
-        playGame = true;
-        Serial.println("play game is true");
-        moves[i] = true;
+  for (int i = 0;i < radarCount; i++){
+     if(digitalRead(radarOutArr[i]) != radarState[i])
+      {
+        radarPingCount[i]++;
+        delay(1);
+        radarState[i] = -(radarState[i] - 1);  //changes current_state from 0 to 1, and vice-versa
       }
-      radarPingCount[i] = 0;
-     }
-    
+    }
+    if(millis()-currentMilli > 500)          //prints the "speed" every half a second
+      {
+         for (int i = 0;i < radarCount; i++)
+         {
+            radarSpeeds[i] = radarPingCount[i]*2;
+           Serial.print(i);
+           Serial.print(" Speed: ");
+            Serial.println(radarSpeeds[i]*2);
+            currentMilli = millis();
+            radarPingCount[i] = 0;
+            if(radarSpeeds[i] > 30){
+              moves[i] = true;
+              playGame= true;
+              Serial.println(" some move is true");
+            }else {
+               moves[i] = false;
+            }
+         }
+          
+      }
     
   
-  Serial.println("done with MOtion");
+  //Serial.println("done with MOtion");
 } 
 void getMotionold(){
   currentMilli = millis();
